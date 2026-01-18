@@ -55,29 +55,51 @@
     document.getElementById('uploadBtn').addEventListener('click', handleUpload);
 
     async function loadVideos() {
-        try {
-            const response = await fetch('/list-videos');
-            const videos = await response.json();
-            const listDiv = document.getElementById('videoList');
+    try {
+        const response = await fetch('/list-videos');
+        const videos = await response.json();
+        const listDiv = document.getElementById('videoList');
+        
+        listDiv.innerHTML = videos.length === 0 ? 'Brak filmów.' : '';
+        
+        videos.forEach(video => {
+            const item = document.createElement('div');
+            item.className = 'video-item';
+            item.style = "display: flex; gap: 10px; align-items: center; border-bottom: 1px solid #eee; padding: 10px;";
             
-            listDiv.innerHTML = videos.length === 0 ? 'Brak filmów na serwerze.' : '';
-            
-            videos.forEach(video => {
-                const item = document.createElement('div');
-                item.className = 'video-item';
-                item.innerHTML = `🎬 ${video.title}`;
-                item.onclick = () => {
-                    const videoPlayer = document.getElementById('mainVideo');
-                    videoPlayer.src = video.path;
-                    document.getElementById('videoTitle').innerText = video.title;
-                    videoPlayer.play();
-                };
-                listDiv.appendChild(item);
-            });
-        } catch (err) {
-            console.error("Błąd ładowania:", err);
-        }
+            item.innerHTML = `
+                <img src="${video.thumbnail}" style="width: 120px; border-radius: 8px; cursor: pointer;" onclick="playAndCount('${video.path}', '${video.title}', '${video._id}')">
+                <div style="flex-grow: 1;">
+                    <strong style="cursor: pointer;" onclick="playAndCount('${video.path}', '${video.title}', '${video._id}')">${video.title}</strong>
+                    <div style="font-size: 12px; color: #666;">Wyświetlenia: ${video.views || 0}</div>
+                </div>
+                <button onclick="deleteVideo('${video._id}')" style="width: auto; background: #eee; color: #666; padding: 5px 10px;">Usuń</button>
+            `;
+            listDiv.appendChild(item);
+        });
+    } catch (err) { console.error(err); }
+}
+
+async function playAndCount(path, title, id) {
+    const videoPlayer = document.getElementById('mainVideo');
+    videoPlayer.src = path;
+    document.getElementById('videoTitle').innerText = title;
+    videoPlayer.play();
+    
+    // Wyślij informację o wyświetleniu do serwera
+    await fetch(`/view/${id}`, { method: 'POST' });
+    loadVideos(); // odśwież licznik na liście
+}
+
+async function deleteVideo(id) {
+    if (!confirm("Na pewno chcesz usunąć ten film?")) return;
+    
+    const response = await fetch(`/video/${id}`, { method: 'DELETE' });
+    if (response.ok) {
+        alert("Film usunięty");
+        loadVideos();
     }
+}
 
     async function handleUpload() {
         const input = document.getElementById('videoInput');
