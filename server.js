@@ -2,59 +2,44 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const Datastore = require('nedb');
 
 const app = express();
-const PORT = 3000;
-const Datastore = require('nedb');
+const PORT = process.env.PORT || 3000; // Ważne dla Rendera!
+
+// 1. Baza danych
 const db = new Datastore({ filename: 'videos.db', autoload: true });
 
-// Endpoint do pobierania listy filmów
-app.get('/list-videos', (req, res) => {
-    db.find({}, (err, docs) => {
-        res.send(docs);
-    });
+// 2. Konfiguracja zapisu (Folder musi istnieć)
+const uploadDir = './uploads';
+if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir);
+
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => cb(null, uploadDir),
+    filename: (req, file, cb) => cb(null, Date.now() + path.extname(file.originalname))
 });
 
-// Zmodyfikuj endpoint /upload, aby zapisywał dane do bazy:
+// TO MUSI BYĆ PRZED app.post!
+const upload = multer({ storage: storage });
+
+// 3. Udostępnianie plików
+// Jeśli index.html jest obok server.js (tak jak na Twoim GitHubie), używamy '.'
+app.use(express.static('.')); 
+app.use('/uploads', express.static('uploads'));
+
+// 4. Endpointy
+app.get('/list-videos', (req, res) => {
+    db.find({}, (err, docs) => res.send(docs));
+});
+
 app.post('/upload', upload.single('video'), (req, res) => {
+    if (!req.file) return res.status(400).send('Brak pliku');
     const videoData = {
         title: req.file.originalname,
         path: `/uploads/${req.file.filename}`,
         timestamp: Date.now()
     };
-    
-    db.insert(videoData, (err, newDoc) => {
-        res.send(newDoc);
-    });
+    db.insert(videoData, (err, newDoc) => res.send(newDoc));
 });
 
-// 1. Konfiguracja zapisu plików
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        const dir = './uploads';
-        if (!fs.existsSync(dir)) fs.mkdirSync(dir); // Tworzy folder jeśli nie istnieje
-        cb(null, dir);
-    },
-    filename: (req, file, cb) => {
-        cb(null, Date.now() + path.extname(file.originalname)); // Unikalna nazwa pliku
-    }
-});
-
-const upload = multer({ storage: storage });
-
-// 2. Udostępnienie plików statycznych (Twój HTML i filmy)
-app.use(express.static('public'));
-app.use('/uploads', express.static('uploads'));
-
-// 3. Endpoint do przesyłania wideo
-app.post('/upload', upload.single('video'), (req, res) => {
-    if (!req.file) return res.status(400).send('Nie wybrano pliku.');
-    
-    // W prawdziwym YouTube tutaj zapisalibyśmy dane w bazie danych
-    console.log("Plik zapisany jako: " + req.file.filename);
-    res.send({ fileName: req.file.filename });
-});
-
-app.listen(PORT, () => {
-    console.log(`Serwer działa na http://localhost:${PORT}`);
-});
+app.listen(PORT, () => console.log(`Serwer działa na porcie ${PORT}`));
