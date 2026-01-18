@@ -20,6 +20,24 @@ const storage = multer.diskStorage({
 });
 
 // TO MUSI BYĆ PRZED app.post!
+const cloudinary = require('cloudinary').v2;
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
+
+// Konfiguracja Twoich danych z Cloudinary
+cloudinary.config({
+  cloud_name: 'dbke0tcby',
+  api_key: '747844565182417',
+  api_secret: '_JBcGTuq86slpu5f2q6gROjZshY'
+});
+
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    resource_type: 'video', // ważne dla filmów!
+    folder: 'moje_tube',
+  },
+});
+
 const upload = multer({ storage: storage });
 
 // 3. Udostępnianie plików
