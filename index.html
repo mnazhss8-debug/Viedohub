@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <title>Klon YouTube - Projekt</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #f9f9f9; margin: 0; padding: 20px; }
+        header { display: flex; justify-content: space-between; background: white; padding: 10px 20px; border-bottom: 1px solid #ddd; }
+        .container { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin-top: 20px; }
+        .video-player { background: black; aspect-ratio: 16/9; display: flex; align-items: center; justify-content: center; color: white; }
+        .upload-section, .login-section { background: white; padding: 20px; border-radius: 8px; border: 1px solid #ddd; margin-bottom: 20px; }
+        input, button { display: block; width: 100%; margin: 10px 0; padding: 10px; }
+        button { background: #cc0000; color: white; border: none; cursor: pointer; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>MojeTube</h1>
+    <div id="user-status">Niezalogowany</div>
+</header>
+
+<div class="container">
+    <main>
+        <div class="video-player">
+            <video id="mainVideo" controls width="100%">
+                <source src="" type="video/mp4">
+                Twoja przeglądarka nie wspiera wideo.
+            </video>
+        </div>
+        <h3>Tytuł wideo: <span id="videoTitle">Wybierz film z listy</span></h3>
+    </main>
+
+    <aside>
+        <div class="login-section">
+            <h4>Logowanie</h4>
+            <input type="text" placeholder="Login">
+            <input type="password" placeholder="Hasło">
+            <button onclick="alert('Logowanie wymaga serwera i bazy danych!')">Zaloguj się</button>
+        </div>
+
+        <div class="upload-section">
+            <h4>Prześlij wideo</h4>
+            <input type="file" id="videoInput" accept="video/*">
+            <button onclick="handleUpload()">Dodaj film</button>
+        </div>
+    </aside>
+</div>
+
+<script>
+    async function handleUpload() {
+        const input = document.getElementById('videoInput');
+        if (!input.files[0]) return alert("Wybierz plik!");
+
+        const formData = new FormData();
+        formData.append('video', input.files[0]);
+
+        // Wysyłanie pliku do serwera
+        const response = await fetch('/upload', {
+            method: 'POST',
+            body: formData
+        });
+
+        const data = await response.json();
+        
+        // Wyświetlenie przesłanego filmu
+        const videoPlayer = document.getElementById('mainVideo');
+        videoPlayer.src = `/uploads/${data.fileName}`;
+        alert("Film został pomyślnie przesłany na serwer!");
+    }
+</script>
+
+</body>
+</html>
